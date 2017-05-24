@@ -25,10 +25,10 @@ UKF::UKF() {
   P_ = MatrixXd(5, 5);
 
   // Process noise standard deviation longitudinal acceleration in m/s^2
-  std_a_ = 0.001;
+  std_a_ = 3;
 
   // Process noise standard deviation yaw acceleration in rad/s^2
-  std_yawdd_ = .05;
+  std_yawdd_ = 2;
 
   // Laser measurement noise standard deviation position1 in m
   std_laspx_ = 0.15;
@@ -146,8 +146,8 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
 		x_ <<  meas_package.raw_measurements_[0],meas_package.raw_measurements_[1],0,0,0;
 	    delta_t = (meas_package.timestamp_ - time_us_) / 1000000.0;
 	    time_us_ = meas_package.timestamp_;
-		//Prediction(delta_t);
-	    //UpdateLidar(meas_package);
+		Prediction(delta_t);
+	    UpdateLidar(meas_package);
       }
 		
 	if (meas_package.sensor_type_ == MeasurementPackage::RADAR) {
@@ -333,8 +333,8 @@ void UKF::UpdateLidar(MeasurementPackage meas_package) {
     double v2 = sin(yaw)*v;
 
     // measurement model
-    Zsig(0,i) = max(.0001,sqrt(p_x*p_x + p_y*p_y));                        //r
-    Zsig(1,i) = atan2(p_y,p_x);                                 //phi
+    Zsig(0,i) = p_x;                        //r
+    Zsig(1,i) = p_y;                                 //phi
     //Zsig(2,i) = (p_x*v1 + p_y*v2 ) / sqrt(p_x*p_x + p_y*p_y);   //r_dot
   }
 
@@ -355,8 +355,8 @@ void UKF::UpdateLidar(MeasurementPackage meas_package) {
     VectorXd z_diff = Zsig.col(i) - z_pred;
 
     //angle normalization
-    while (z_diff(1)> M_PI) z_diff(1)-=2.*M_PI;
-    while (z_diff(1)<-M_PI) z_diff(1)+=2.*M_PI;
+   // while (z_diff(1)> M_PI) z_diff(1)-=2.*M_PI;
+    //while (z_diff(1)<-M_PI) z_diff(1)+=2.*M_PI;
 
     S = S + weights_(i) * z_diff * z_diff.transpose();
   }
@@ -376,8 +376,8 @@ void UKF::UpdateLidar(MeasurementPackage meas_package) {
     //residual
     VectorXd z_diff = Zsig.col(i) - z_pred;
     //angle normalization
-    while (z_diff(1)> M_PI) z_diff(1)-=2.*M_PI;
-    while (z_diff(1)<-M_PI) z_diff(1)+=2.*M_PI;
+    //while (z_diff(1)> M_PI) z_diff(1)-=2.*M_PI;
+    //while (z_diff(1)<-M_PI) z_diff(1)+=2.*M_PI;
 
     // state difference
     VectorXd x_diff =  Xsig_pred_.col(i) - x_;
@@ -392,14 +392,14 @@ void UKF::UpdateLidar(MeasurementPackage meas_package) {
   MatrixXd K = Tc * S.inverse();
 
   //residual
-  VectorXd z_diff = z - z_pred;
+  VectorXd z_diff_r = z - z_pred;
 
   //angle normalization
-  while (z_diff(1)> M_PI) z_diff(1)-=2.*M_PI;
-  while (z_diff(1)<-M_PI) z_diff(1)+=2.*M_PI;
+  //while (z_diff(1)> M_PI) z_diff(1)-=2.*M_PI;
+  //while (z_diff(1)<-M_PI) z_diff(1)+=2.*M_PI;
 
   //update state mean and covariance matrix
-  x_ = x_ + K * z_diff;
+  x_ = x_ + K * z_diff_r;
   P_ = P_ - K*S*K.transpose();
 
 }
